@@ -1,0 +1,50 @@
+/*
+* Dendritic action potentials shape the computational 
+* 	properties of human layer 2/3 cortical neurons( Gidon et al., 2019)
+* 
+* written by 
+* Athanasia Papoutsi and Albert Gidon
+*/
+
+objref imp
+func get_Rin(){local x
+	x = $1
+	imp = new Impedance(x)
+	imp.loc(x)
+	imp.compute(0)
+	return imp.input(x)
+}
+
+proc biophys(){
+	celsius = 35
+	forall cm =0.45
+	forall Ra =100
+	//segment at least every 30 μm	
+	forsec apical nseg = 1 + 2*int(L/30) 
+	active_properties()
+}
+
+proc active_properties() {
+	Rm =37
+	forall insert pas
+	forall g_pas = 1/Rm/1000
+	forall e_pas = -74
+	forsec as{
+		//remove the passive properties from soma and axon
+		g_pas = 0
+		insert traub
+		// if the model is passive, leave all the passive 
+		// leak as it is.
+		gNabar_traub = .1 
+		gKbar_traub = .015 * 3
+		gLbar_traub =  1/Rm/1000  	
+		eL_traub = -74.0 		
+		eK_traub = -80			
+		eNa_traub = 90 			
+
+	}
+	forall if(ismembrane("traub")) v_shft_traub = 50
+}
+
+
+

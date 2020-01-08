@@ -1,0 +1,109 @@
+/*
+* Novel dendritic action potentials shape the computational 
+* 	properties of human layer 2/3 cortical neurons( Gidon et al., 2019)
+* 
+* written by 
+* Athanasia Papoutsi and Albert Gidon
+*/
+
+load_file("../_classlib/TString.hoc")
+load_file("../_classlib/TPointList.hoc")
+
+objref plex_bg,plex_X,plex_Y
+objref plin_subdomain,plin_martinotti,plin_basket
+objref pl_dcaap
+objref syns,rnd, tplay
+
+rnd = new Random(0) //so that the synapses do not have the same activity.
+obfunc get_tplay(){local Hz, delay, dur localobj tp
+	Hz = $1
+    delay = 100
+	delay = $2
+	dur = $3/1000
+    //assign four times the nuber of extepcted spike per second to be safe
+	tp = new Vector(Hz * dur * 5  )  //large vector to avoid edge conditions
+	rnd.negexp(1/Hz * 1000)
+	tp.setrand(rnd)
+	tp.integral().add(delay)
+	tp.where("<",delay + dur * 1000)
+	return tp
+}
+
+proc add_syns(){local x,Hz,delay,dur,use_ampa,use_nmda,use_basket,use_martinotti localobj tp,s,points,syns,tplay
+	points = $o1
+    syns = $o2 
+	tplay = $o3
+	//synaptic parameters as in Eyal et al., (2018)
+	for points.each_point(&x) {
+		tp = get_tplay(Hz = $4,delay = $5,dur = $6)	
+		if(use_ampa = $7){
+			//ampa synapses
+			s =  new myAMPA(x)
+			s.gmax = 0.7e-3  //uS
+			{s.tau_r = 0.3 s.tau_d = 1.8 s.mg = 0 s.e = 0}
+			s.play( tp )
+			syns.append(s)
+		}
+		if(use_nmda = $8){
+			//nmda synapses
+			s =  new myNMDA(x)
+			s.gmax = 1.3e-3   //uS
+			{s.tau_r = 8 s.tau_d = 35 s.mg = 1 s.e = 0}
+			s.gamma = 0.077//0.082 //rhodes et al., 2006
+			s.play( tp )
+			syns.append(s)
+		}
+		//mid value between fast GABAa with 5 ms decay as in Salin and Prince, 1996 for
+		// fast basket cells inhibition and slow martinotti GABAa with 20 ms decay (Gidon and Segev 2012)
+		// For this simulation actually any reasonable parameters would work here with a bit of
+		// adjustment to the overall excitability (number of synapses, threshold etc').	
+		if(use_basket = $9){
+			s =  new myGABA(x)
+			s.gmax =  0.5e-3//uS
+			{s.tau_r = 0.5 s.tau_d = 5 s.e = -75 s.play( tp )}
+			syns.append(s)
+		}		
+		if(use_martinotti = $10){
+			s =  new myGABA(x)
+			s.gmax =  0.5e-3//uS
+			s.tau_r = 2
+			s.tau_d = 23
+			s.e = -75
+			s.play( tp )
+			syns.append(s)
+		}
+		tplay.append(tp)
+	
+	}
+}
+
+
+proc initialize_pathways(){
+	//this will redifine the list object 
+	//and delete the content of the list
+	syns = new List()
+	tplay = new List()
+}
+
+proc init_points() {local syns_bg,syns_X,syns_Y,syns_martinotti,syns_basket localobj rnd_p
+	syns_bg = $1
+	syns_X = $2
+	syns_Y = $3
+	syns_martinotti = $4
+	syns_basket = $5	
+	plex_bg = new TPointList()
+	plex_X = new TPointList()
+	plex_Y = new TPointList()
+	plex_bg.setrand(all_no_axon,syns_bg,rnd_p = new Random(3))
+	plex_X.setrand(subdomain,syns_X,rnd_p = new Random(2))
+	plex_Y.setrand(subdomain,syns_Y,rnd_p = new Random(4))
+	plin_basket = new TPointList()
+	plin_subdomain = new TPointList()
+	plin_martinotti = new TPointList()
+	plin_subdomain.setrand(subdomain,syns_martinotti,rnd_p = new Random(5))
+	plin_basket.setrand(basal,syns_basket,rnd_p = new Random(10))
+	soma plin_martinotti.setrand_distance(subdomain,700,syns_martinotti,rnd_p = new Random(5))
+	//start from scratch
+	initialize_pathways()
+}
+

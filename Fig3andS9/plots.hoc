@@ -1,0 +1,37 @@
+/*
+* Novel dendritic action potentials shape the computational 
+* 	properties of human layer 2/3 cortical neurons( Gidon et al., 2019)
+* 
+* written by 
+* Athanasia Papoutsi and Albert Gidon
+*/
+
+objref g,s
+strdef v_str,label
+proc init_plots(){
+	objref g
+	steps_per_ms = 20	
+	dt = 1.0/steps_per_ms
+	newPlotV()
+	graphItem.erase_all()
+	g = graphItem
+	sprint(v_str,"%s.v(%f)",secname(),$1)
+	sprint(label,"dap_loc:%s.v(%f)",secname(),$1)
+	g.addvar(label, v_str, 2,1)
+	g.addvar("soma_loc", "soma.v(0.5)", 1,1)	
+}
+
+proc plot_shape(){
+	objref s
+	forall nseg = int(L) //this is at the end, so it does not effect the simulation
+	s = new Shape()
+	plex_X.mark(s,2,"O",4)
+	plex_Y.mark(s,3,"O",4)
+	plex_bg.mark(s,4,"O",4)
+	
+	plin_subdomain.mark(s,5,"S",4)
+	plin_basket.mark(s,6,"S",4)
+	plin_martinotti.mark(s,7,"S",4)
+	
+	pl_dcaap.mark(s,7,"T",7)
+}
